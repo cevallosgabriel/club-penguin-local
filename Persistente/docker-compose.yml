@@ -1,0 +1,174 @@
+# ═══════════════════════════════════════════════════════════════
+# CLUB PENGUIN LOCAL ENVIRONMENT — Docker Compose
+# ═══════════════════════════════════════════════════════════════
+#
+# Arquitectura de discos:
+#   - Servicios de ejecución (Redis, PostgreSQL, Houdini, Dash)
+#     corren con datos en el disco principal (SSD)
+#   - Assets multimedia se montan desde el disco secundario (HDD)
+#     mediante volúmenes bind-mount
+#
+# Uso:
+#   docker-compose up -d            # Levantar todo
+#   docker-compose logs -f houdini  # Ver logs de un servicio
+#   docker-compose down             # Detener todo
+# ═══════════════════════════════════════════════════════════════
+
+version: "3.8"
+
+services:
+  # ─────────────────────────────────────────────────────────────
+  # PostgreSQL — Base de datos principal
+  # Almacenamiento: SSD (volumen Docker en disco principal)
+  # ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:14-alpine
+    container_name: cpps-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cpps_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cpps_local_2024}
+    volumes:
+      # Datos de PostgreSQL en volumen Docker (SSD por defecto)
+      - pgdata:/var/lib/postgresql/data
+      # Scripts de inicialización de bases de datos
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cpps_admin}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - cpps-net
+
+  # ─────────────────────────────────────────────────────────────
+  # Redis — Caché de sesiones y estado del juego
+  # Almacenamiento: SSD (todo en memoria + volumen Docker)
+  # ─────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: cpps-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - cpps-net
+
+  # ─────────────────────────────────────────────────────────────
+  # Houdini — Emulador del servidor de juego (Solero)
+  # Ejecución: SSD | Media: HDD (bind-mount)
+  # ─────────────────────────────────────────────────────────────
+  houdini:
+    build:
+      context: ./houdini/houdini
+      dockerfile: Dockerfile
+    container_name: cpps-houdini
+    restart: unless-stopped
+    ports:
+      - "${HOUDINI_LOGIN_PORT:-6112}:6112"
+      - "${HOUDINI_WORLD_PORT:-9875}:9875"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-cpps_admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cpps_local_2024}
+      - POSTGRES_DB=${POSTGRES_DB_HOUDINI:-houdini}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - GAME_ADDRESS=${HOUDINI_GAME_ADDRESS:-localhost}
+    volumes:
+      # Código fuente del servidor (SSD — para live-reload en desarrollo)
+      - ./houdini/houdini:/app:ro
+      # ┌──────────────────────────────────────────────────────┐
+      # │  MEDIA: bind-mount desde HDD externo                 │
+      # │  Aquí es donde van los SWFs y assets pesados          │
+      # └──────────────────────────────────────────────────────┘
+      - ${CPPS_MEDIA_ROOT:-E:\Users\Gener\Desktop\Gabriel_}/media/houdini:/media:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cpps-net
+
+  # ─────────────────────────────────────────────────────────────
+  # Dash — Web Services para Houdini (API REST)
+  # ─────────────────────────────────────────────────────────────
+  dash:
+    build:
+      context: ./houdini/dash
+      dockerfile: Dockerfile
+    container_name: cpps-dash
+    restart: unless-stopped
+    ports:
+      - "${HOUDINI_WEB_PORT:-3000}:3000"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-cpps_admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cpps_local_2024}
+      - POSTGRES_DB=${POSTGRES_DB_HOUDINI:-houdini}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./houdini/dash:/app:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cpps-net
+
+  # ─────────────────────────────────────────────────────────────
+  # Nginx — Media Server y Proxy Reverso
+  # Sirve los assets estáticos desde el HDD
+  # ─────────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: cpps-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-8080}:80"
+    volumes:
+      # Configuración de Nginx (SSD)
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # ┌──────────────────────────────────────────────────────┐
+      # │  MEDIA VOLUMES: todos apuntan al HDD                 │
+      # └──────────────────────────────────────────────────────┘
+      - ${CPPS_MEDIA_ROOT:-E:\Users\Gener\Desktop\Gabriel_}/media/houdini:/var/www/media/houdini:ro
+      - ${CPPS_MEDIA_ROOT:-E:\Users\Gener\Desktop\Gabriel_}/media/timeline:/var/www/media/timeline:ro
+      - ${CPPS_MEDIA_ROOT:-E:\Users\Gener\Desktop\Gabriel_}/media/opencpi:/var/www/media/opencpi:ro
+    depends_on:
+      - dash
+    networks:
+      - cpps-net
+
+# ───────────────────────────────────────────────────────────────
+# Volúmenes con nombre — Se crean en el disco principal (SSD)
+# Docker los almacena en su directorio de datos por defecto
+# ───────────────────────────────────────────────────────────────
+volumes:
+  pgdata:
+    name: cpps-pgdata
+  redisdata:
+    name: cpps-redisdata
+
+# ───────────────────────────────────────────────────────────────
+# Red interna para comunicación entre contenedores
+# ───────────────────────────────────────────────────────────────
+networks:
+  cpps-net:
+    name: cpps-network
+    driver: bridge

@@ -1,0 +1,101 @@
+# ==============================================================================
+# .gitignore — Club Penguin Community Edition
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. PLANIFICACIÓN INTERNA Y PRIVADA (No público en GitHub)
+# ------------------------------------------------------------------------------
+PIPELINE_DE_COMMITS.md
+
+# ------------------------------------------------------------------------------
+# 2. ARCHIVOS GIGANTES Y COMPILACIONES (> 100 MB - Bloqueados por GitHub)
+# (Distribuye estos archivos a través de GitHub Releases)
+# ------------------------------------------------------------------------------
+*.part
+*.part*.rar
+*.part*.exe
+*.rar
+*.7z
+*.iso
+
+# Instaladores empaquetados generados
+Instalar_Servidor_ClubPenguin*.exe
+Instalar_ClubPenguin_Cliente.exe
+CCPP_by_winrar.exe
+ClubPenguin_Cliente_Python.exe
+ClubPenguin_Cliente_Amigos.exe
+
+# Software propietario y herramientas pesadas de terceros
+Portable/Host/Motor_Servidor/-Extras/Navicat*
+*/-Extras/Navicat*
+*/pgAdmin 4/runtime/pgAdmin4.exe
+chrome.dll
+*/chrome.dll
+
+# ------------------------------------------------------------------------------
+# 3. CONFIGURACIONES LOCALES, IPs DE PRUEBA Y SECRETOS
+# ------------------------------------------------------------------------------
+current_ip.txt
+ip_servidor.txt
+comentarios_sfx_*.txt
+_sfx_config.txt
+sfx_*.txt
+
+# Variables de entorno con claves reales (Usa .env.example como plantilla)
+.env
+*.env.local
+
+# ------------------------------------------------------------------------------
+# 4. REGISTROS (LOGS) Y ARCHIVOS TEMPORALES
+# ------------------------------------------------------------------------------
+*.log
+logs/
+*/logs/
+*.tmp
+*.bak
+
+# ------------------------------------------------------------------------------
+# 5. PYTHON (Bytecode, Caches y Entornos Virtuales)
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+.Python
+env/
+venv/
+.venv/
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ------------------------------------------------------------------------------
+# 6. BASE DE DATOS Y SERVIDORES (Bloqueos y Dumps en Tiempo de Ejecución)
+# ------------------------------------------------------------------------------
+*.pid
+postmaster.pid
+postmaster.opts
+dump.rdb
+*.rdb
+
+# ------------------------------------------------------------------------------
+# 7. CACHES DE NAVEGADORES (Chrome Portable y Flash)
+# ------------------------------------------------------------------------------
+*/Cache/
+*/Code Cache/
+*/GPUCache/
+*/ShaderCache/
+*/Service Worker/
+*/User Data/Default/Cache*
+*/User Data/Default/Media Cache*
+
+# ------------------------------------------------------------------------------
+# 8. ARCHIVOS DEL SISTEMA OPERATIVO
+# ------------------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+._*
