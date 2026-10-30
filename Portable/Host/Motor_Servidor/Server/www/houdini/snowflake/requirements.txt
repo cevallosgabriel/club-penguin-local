@@ -1,0 +1,8 @@
+service-identity==24.2.0; python_version >= "3.10"
+psycopg2-binary==2.9.10
+python-dotenv==1.1.1
+Twisted==25.5.0
+redis==6.4.0
+txwebsocket==1.1.1
+six==1.17.0
+pyopenssl==25.1.0
