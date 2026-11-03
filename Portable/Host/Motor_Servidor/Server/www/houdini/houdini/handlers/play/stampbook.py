@@ -55,6 +55,7 @@ async def handle_get_stamps(p):
 
 @handlers.handler(XTPacket('j', 'jr'), after=handle_join_room)
 async def handle_add_mascot_stamp(p):
+    # Prevent server crash on mascot stamps missing in stampbook (stamp_id is not None)
     if p.character is not None:
         character = p.server.characters[p.character]
         if character.stamp_id is not None:
