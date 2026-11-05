@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<servers>
+   <environment name="live">
+      <login address="localhost " port="6112" />
+      <redemption address="localhost " port="9875" />
+      <language locale="pt">
+         <server id="3100" name="Avalanche" safe="false" address="localhost " port="9875" />
+      </language>
+      <language locale="es">
+         <server id="3101" name="Glaciar" safe="false" address="localhost " port="9876" />
+      </language>
+      <language locale="en">
+         <server id="3102" name="Blizzard" safe="false" address="localhost " port="9877" />
+      </language>
+      <language locale="fr">
+         <server id="3103" name="Yeti" safe="false" address="localhost " port="9878" />
+      </language>
+   </environment>
+</servers>
+
+
+
+
+
+
+
+
